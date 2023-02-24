@@ -1,0 +1,3 @@
+[submodule "NSFWDetector"]
+	path = NSFWDetector
+	url = /Users/david/Project/flutter_nsfw/NSFWDetector
