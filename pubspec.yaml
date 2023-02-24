@@ -9,6 +9,7 @@ environment:
   flutter: ">=1.20.0"
 
 dependencies:
+  file_picker: ^5.2.5
   flutter:
     sdk: flutter
 
@@ -32,6 +33,9 @@ flutter:
         package: dev.ahsanaliflutter.flutter_nsfw
         pluginClass: FlutterNsfwPlugin
       ios:
+        pluginClass: FlutterNsfwPlugin
+
+      macos:
         pluginClass: FlutterNsfwPlugin
 
   # To add assets to your plugin package, add an assets section, like this:

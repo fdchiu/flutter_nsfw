@@ -1,10 +1,8 @@
-import UIKit
-import Flutter
+import Cocoa
+import FlutterMacOS
 import NSFWDetector
 import AVFoundation
 import PromiseKit
-
-
 
 enum FlutterNSFWError: Error {
     case unknownMethod
@@ -12,7 +10,7 @@ enum FlutterNSFWError: Error {
 
 
 class AssetData : Hashable {
-   
+
     var name: String = ""
     var path: String = ""
     var avasset: AVAsset?
@@ -20,30 +18,27 @@ class AssetData : Hashable {
     var documentDirectoryPath: URL?
     var maxLabel: String = ""
     var trimmedPath: URL?
-   
+
     static func == (lhs: AssetData, rhs: AssetData) -> Bool {
         if (lhs.name == rhs.name && lhs.path == rhs.path) {
             return true
         }
         return false
     }
-   
+
     func hash(into hasher: inout Hasher) {
         hasher.combine(path)
     }
 }
 
-
-
-
-public class SwiftFlutterNsfwPlugin: NSObject, FlutterPlugin {
+public class FlutterNsfwPlugin: NSObject, FlutterPlugin {
   public static func register(with registrar: FlutterPluginRegistrar) {
-    let channel = FlutterMethodChannel(name: "flutter_nsfw", binaryMessenger: registrar.messenger())
-    let instance = SwiftFlutterNsfwPlugin()
+    let channel = FlutterMethodChannel(name: "flutter_nsfw", binaryMessenger: registrar.messenger)
+    let instance = FlutterNsfwPlugin()
     registrar.addMethodCallDelegate(instance, channel: channel)
   }
 
-  @available(iOS 12.0, *)
+
   public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
     do{
         switch call.method {
@@ -56,20 +51,23 @@ public class SwiftFlutterNsfwPlugin: NSObject, FlutterPlugin {
                 }
 
             case "getPhotoNSFWScore":
+            print("getPhotoNSFWScore")
                 guard let arguments = call.arguments as? [AnyHashable: Any] else { return }
                 guard let imagePath = arguments["filePath"] as? String else { return }
-                guard let image:UIImage = UIImage(named: imagePath) else { return }
+                //guard let image:UIImage = UIImage(named: imagePath) else { return }
+                let image = NSImage(contentsOf: URL(fileURLWithPath: imagePath))!
+
                 handleGetPhotoNSFWScore(image: image).done{ nsfwResult in
                     result(nsfwResult)
                 }
 
-        
+
             case "detectNSFWVideo":
                 guard let arguments = call.arguments as? [AnyHashable: Any] else { return }
                 guard let videoPath = arguments["videoPath"] as? String else { return }
                 guard let nsfwThresh = arguments["nsfwThreshold"] as? Double else { return }
                 handleDetectNSFWVideo(videoPath: videoPath, nsfwThresh: nsfwThresh, completion: result)
-            
+
             default:
                 throw FlutterNSFWError.unknownMethod
         }
@@ -78,8 +76,8 @@ public class SwiftFlutterNsfwPlugin: NSObject, FlutterPlugin {
         result(0)
     }
   }
-    
-    
+
+
     @available(iOS 12.0, *)
         func handleGetPhotoNSFWScore(image:UIImage)->Promise<Float>{
             return Promise { seal in
@@ -94,9 +92,9 @@ public class SwiftFlutterNsfwPlugin: NSObject, FlutterPlugin {
                         break
                     }
                 })
-            
 
-                
+
+
             }
         }
 
@@ -119,14 +117,13 @@ public class SwiftFlutterNsfwPlugin: NSObject, FlutterPlugin {
                         break
                     }
                 })
-            
 
-                
+
+
             }
         }
-    
-    
-    @available(iOS 12.0, *)
+
+
     func handleDetectNSFWVideo(videoPath:String,nsfwThresh:Double ,completion: @escaping FlutterResult){
        let assetData = AssetData()
         assetData.name = videoPath
@@ -148,17 +145,17 @@ public class SwiftFlutterNsfwPlugin: NSObject, FlutterPlugin {
                    }
                   }
 
-              
-                   
+
+
                }
                 }
           }
 
         })
     }
-    
+
     func getImagesForAssetAsynchronously(assetData: AssetData, completionHandler: @escaping (AssetData, Bool)-> Void) {
-       
+
         let duration = assetData.avasset!.duration
         let seconds = CMTimeGetSeconds(duration)
         let addition = seconds / 15
@@ -185,16 +182,17 @@ public class SwiftFlutterNsfwPlugin: NSObject, FlutterPlugin {
         let imageGenerator = AVAssetImageGenerator(asset: assetData.avasset!)
         var images:[UIImage] = []
         imageGenerator.generateCGImagesAsynchronously(forTimes: times) { (requestedTime, cgImage, actualImageTime, status, error) in
-           
+
             let seconds = CMTimeGetSeconds(requestedTime)
             let date = Date(timeIntervalSinceNow: seconds)
             let time = Formatter.formatter.string(from: date)
             timesCounter += 1
             switch status {
             case .succeeded: do {
-                    if let image = cgImage {
+                if let image = cgImage {
+                    do {
                         //print("Generated image for approximate time: \(time)")
-                        let img = UIImage(cgImage: image)
+                        let img = UIImage(cgImage: image, size: try NSSize(from: image as! Decoder))
                         images.append(img)
                         notificationCenter.post(name: Notification.Name("SendUpdatesToUser"), object: nil, userInfo: ["text":"Reading data \(assetData.name) at \(seconds)s"])
                         if timesCounter >= times.count {
@@ -203,7 +201,10 @@ public class SwiftFlutterNsfwPlugin: NSObject, FlutterPlugin {
                             notificationCenter.post(name: Notification.Name("SendUpdatesToUser"), object: nil, userInfo: ["text":"Finished data generation for \(assetData.name)"])
                             completionHandler(assetData, true)
                         }
+                    } catch {
+                        print("error")
                     }
+                }
                     else {
                         print("Failed to generate a valid image for time: \(time)")
                     }
@@ -226,7 +227,7 @@ public class SwiftFlutterNsfwPlugin: NSObject, FlutterPlugin {
             }
         }
     }
-   
 
-    
+
+
 }

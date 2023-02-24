@@ -1,7 +1,8 @@
 import 'dart:async';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter_nsfw/flutter_nsfw.dart';
 import 'package:flutter/services.dart' show rootBundle;
-import 'dart:io' show Directory, File;
+import 'dart:io' show Directory, File, Platform;
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -130,14 +131,36 @@ class _MyAppState extends State<MyApp> {
               ElevatedButton(
                 child: Text('Pick image'),
                 onPressed: () async {
-                  final ImagePicker _picker = ImagePicker();
-                  final XFile? image =
-                      await _picker.pickImage(source: ImageSource.gallery);
-                  if (image != null) {
-                    setState(() {
-                      imgPath = image.path;
-                    });
-                    _isNSFW = await detectNSFWImage(imgPath);
+                  if(Platform.isMacOS) {
+                    FilePickerResult? result = await FilePicker.platform.pickFiles();
+                    if (result != null) {
+                      final imageFile = result.files.single.path;
+                      if(imageFile != null) {
+                        setState(() {
+                          imgPath = imageFile;
+                        });
+                        final result = await detectNSFWImage(imgPath);
+                        setState((){
+                          _isNSFW = result;
+                        });
+
+                      }
+                    }
+                  } else {
+                    final ImagePicker _picker = ImagePicker();
+                    final XFile? image =
+                    await _picker.pickImage(source: ImageSource.gallery);
+
+                    if (image != null) {
+                      setState(() {
+                        imgPath = image.path;
+                      });
+
+                      final result = await detectNSFWImage(imgPath);
+                      setState((){
+                        _isNSFW = result;
+                      });
+                    }
                   }
                 },
               ),
