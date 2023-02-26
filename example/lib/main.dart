@@ -132,19 +132,20 @@ class _MyAppState extends State<MyApp> {
                 child: Text('Pick image'),
                 onPressed: () async {
                   if(Platform.isMacOS) {
-                    FilePickerResult? result = await FilePicker.platform.pickFiles();
-                    if (result != null) {
-                      final imageFile = result.files.single.path;
+                    FilePickerResult? filePick = await FilePicker.platform.pickFiles();
+                    if (filePick != null) {
+                      final imageFile = filePick.files.single.path;
+                      //final imageFile = '/Volumes/Macintosh HD/Users/david/Library/Containers/B0419353-BEDE-4806-90C8-EE5D5933DEAF/Data/Documents/sd_output383389.jpeg';
                       if(imageFile != null) {
                         setState(() {
                           imgPath = imageFile;
                         });
-                        final result = await detectNSFWImage(imgPath);
-                        setState((){
-                          _isNSFW = result;
-                        });
 
                       }
+                      final result = await detectNSFWImage(imgPath);
+                      setState((){
+                      _isNSFW = result;
+                      });
                     }
                   } else {
                     final ImagePicker _picker = ImagePicker();
