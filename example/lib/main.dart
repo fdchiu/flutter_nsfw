@@ -89,7 +89,7 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   NSFWDetector _nsfwDetector =
-      NSFWDetector('assets/model/nsfw.tflite', true, true, 2);
+      NSFWDetector('assets/models/nsfw.tflite', true, true, 2);
   Future<dynamic> detectNSFWImage(String photo) async {
     final nsfwStatus = await _nsfwDetector.detectInPhoto(photo);
     if (nsfwStatus > 0.80) {

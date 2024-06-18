@@ -12,7 +12,7 @@ class FlutterNsfw {
   }
 
   ///initialization
-  /// [modelPath] Model path is required for android only you can either choose to upload model in you asset folder or upload in firebse ml
+  /// [modelPath] Model path is required for android only you can either choose to upload models in you asset folder or upload in firebse ml
   /// [enableLog] Whether to enable log
   /// [isOpenGPU] Whether to enable GPU scanning acceleration, some models that are compatible and unfriendly can be turned off. On by default
   /// [numThreads] Internally allocated threads when scanning data. Default 4
