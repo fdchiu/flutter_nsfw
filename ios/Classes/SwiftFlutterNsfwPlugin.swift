@@ -53,14 +53,28 @@ public class SwiftFlutterNsfwPlugin: NSObject, FlutterPlugin {
                 guard let image:UIImage = UIImage(data: imageData.data) else { return }
                 handleGetPhotoNSFWScore(image: image).done{ nsfwResult in
                     result(nsfwResult)
+                }.catch { error in
+                    print("FlutterNSFWError getBitmapNSFWScore: \(error)")
+                    result(FlutterError(code: "nsfw_detection_failed", message: "\(error)", details: nil))
                 }
 
             case "getPhotoNSFWScore":
                 guard let arguments = call.arguments as? [AnyHashable: Any] else { return }
                 guard let imagePath = arguments["filePath"] as? String else { return }
-                guard let image:UIImage = UIImage(named: imagePath) else { return }
+                // UIImage(named:) looks up a bundled asset-catalog entry by name -
+                // it can never resolve an arbitrary filesystem path like the ones
+                // this plugin is actually called with (a cached/downloaded image),
+                // so it always returned nil here. That hit the guard's `return`
+                // without ever calling `result(...)`, which leaves the Dart-side
+                // Future awaiting this method channel call permanently unresolved -
+                // no error, no timeout, just a silent hang for the rest of the
+                // app's session. UIImage(contentsOfFile:) loads from the actual path.
+                guard let image:UIImage = UIImage(contentsOfFile: imagePath) else { return }
                 handleGetPhotoNSFWScore(image: image).done{ nsfwResult in
                     result(nsfwResult)
+                }.catch { error in
+                    print("FlutterNSFWError getPhotoNSFWScore: \(error)")
+                    result(FlutterError(code: "nsfw_detection_failed", message: "\(error)", details: nil))
                 }
 
         
@@ -90,8 +104,16 @@ public class SwiftFlutterNsfwPlugin: NSObject, FlutterPlugin {
                         print("Confidance",confidence)
                             seal.resolve(.fulfilled(confidence));
 
-                    default:
-                        break
+                    // A DetectionResult.error (e.g. Vision/CoreML couldn't produce
+                    // an NSFW observation) used to fall through to `default: break`
+                    // and never settle the Promise at all - the call site's
+                    // `.done` handler (which is all it had, no `.catch`) would
+                    // then never fire either, leaving `result(...)` uninvoked and
+                    // the Dart Future permanently unresolved. Reject instead so
+                    // the call site's `.catch` (added alongside this) can still
+                    // complete the Flutter method channel call.
+                    case let .error(error):
+                        seal.reject(error)
                     }
                 })
             
